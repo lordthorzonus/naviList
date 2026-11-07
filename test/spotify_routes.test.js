@@ -8,6 +8,25 @@ const { createRouter } = require('../src/lib/spotify');
 const db = require('../src/db/index');
 after(() => db.close());
 
+test('match endpoint returns a compact update and keeps same-origin protection', async t => {
+  const calls = [];
+  const update = { spotify_id: 'a'.repeat(22), tracks: [{ position: 12, status: 'matched', track_id: 'local' }] };
+  const client = { config: () => ({ origin: 'https://navilist.example' }) };
+  const service = { saveMatch: async (...args) => { calls.push(args); return update; } };
+  const app = express(); app.use(express.json()); app.use('/spotify', createRouter(db, client, service));
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  t.after(() => server.close());
+  const url = `http://127.0.0.1:${server.address().port}/spotify/api/playlists/${update.spotify_id}/match`;
+  const post = origin => fetch(url, { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ spotify_id: 'source', track_id: 'local' }) });
+  assert.equal((await post('https://evil.example')).status, 403);
+  assert.equal(calls.length, 0);
+  const response = await post('https://navilist.example');
+  assert.deepEqual(await response.json(), { ok: true, update });
+  assert.deepEqual(calls, [[update.spotify_id, 'source', 'local']]);
+});
+
 test('HTTP routes protect mutations, bind OAuth state to browser and never return credentials', async t => {
   const account = { user_id: 'user', tokens: 'must-never-leak' };
   const client = { config: () => ({ clientId: 'client', redirectUri: 'http://127.0.0.1/spotify/callback', origin: 'http://127.0.0.1', secure: false }),

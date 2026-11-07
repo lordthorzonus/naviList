@@ -115,13 +115,19 @@ function createService(db, client, { publish = publishPlaylist } = {}) {
     }),
     saveMatch: (id, sourceId, trackId) => exclusive(() => {
       const cached = row(id);
-      if (!cached || !JSON.parse(cached.tracks_json).some(t => t.spotify_id === sourceId && t.supported)) throw new Error('Track not present in this playlist');
+      const affected = cached && JSON.parse(cached.tracks_json).filter(t => t.spotify_id === sourceId && t.supported);
+      if (!affected?.length) throw new Error('Track not present in this playlist');
       if (trackId === null) db.prepare('DELETE FROM spotify_matches WHERE spotify_id = ?').run(sourceId);
       else {
         if (typeof trackId !== 'string' || !db.prepare('SELECT 1 FROM tracks WHERE id = ?').get(trackId)) throw new Error('Local track not found');
         db.prepare('INSERT OR REPLACE INTO spotify_matches (spotify_id, track_id) VALUES (?, ?)').run(sourceId, trackId);
       }
-      return report(cached);
+      // Choosing a known local ID needs no library matcher. Resetting rematches
+      // only this song (including duplicate occurrences), never the playlist.
+      const tracks = trackId === null
+        ? report({ tracks_json: JSON.stringify(affected) }).tracks
+        : affected.map(track => ({ ...track, track_id: trackId, status: 'matched', candidates: [] }));
+      return { spotify_id: id, tracks };
     }),
   };
 }

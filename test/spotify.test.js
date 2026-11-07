@@ -224,6 +224,28 @@ test('saved overrides are reused, resettable and validated', async t => {
   assert.equal((await service.saveMatch(id, songId, null)).tracks[0].track_id, 'local');
 });
 
+test('large-playlist match saves return only supported duplicate occurrences without scanning the library', async t => {
+  const { db, service, state } = fixture(t);
+  addTrack(db, 'local');
+  const tracks = normalizeItems(Array.from({ length: 5000 }, (_, i) => item('Song', String(i).padStart(22, '0'))));
+  tracks[10].spotify_id = songId; tracks[4000].spotify_id = songId;
+  tracks[4999].spotify_id = songId; tracks[4999].supported = false;
+  db.prepare('INSERT INTO spotify_playlists (spotify_id,title,tracks_json) VALUES (?,?,?)').run(id, 'Huge playlist', JSON.stringify(tracks));
+  const queries = [], prepare = db.prepare;
+  t.mock.method(db, 'prepare', function(sql) { queries.push(sql); return prepare.call(this, sql); });
+  const update = await service.saveMatch(id, songId, 'local');
+  assert.equal(update.spotify_id, id);
+  assert.deepEqual(update.tracks.map(track => track.position), [10, 4000]);
+  assert.ok(update.tracks.every(track => track.status === 'matched' && track.track_id === 'local'));
+  assert.ok(!queries.some(sql => /FROM tracks/i.test(sql) && !/WHERE id = \?/i.test(sql)), 'must not rebuild the library index');
+  assert.ok(JSON.stringify(update).length < 1500, 'response must not contain the full playlist');
+  assert.equal(state.calls.length, 0);
+  assert.equal(state.published.length, 0);
+  const reset = await service.saveMatch(id, songId, null);
+  assert.deepEqual(reset.tracks.map(track => track.position), [10, 4000]);
+  assert.ok(reset.tracks.every(track => track.track_id === 'local'));
+});
+
 test('errors and empty source preserve the last successful destination and timestamp', async t => {
   const { db, service, state } = fixture(t);
   addTrack(db, 'local');

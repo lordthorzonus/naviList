@@ -108,7 +108,7 @@ function createRouter(database, client, service) {
     res.json({ ok: true });
   }));
   router.post('/api/playlists/:id/match', route(async (req, res) => res.json({ ok: true,
-    playlist: await service.saveMatch(req.params.id, req.body.spotify_id, req.body.track_id) })));
+    update: await service.saveMatch(req.params.id, req.body.spotify_id, req.body.track_id) })));
   return router;
 }
 

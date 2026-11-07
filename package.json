@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "demo:missing-music": "node scripts/demo-missing-music.cjs"
   },
   "dependencies": {
     "better-sqlite3": "^9.4.3",

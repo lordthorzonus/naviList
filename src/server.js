@@ -42,6 +42,7 @@ app.use('/library', require('./lib/library'));
 app.use('/settings', require('./lib/settings'));
 app.use('/nsp', require('./lib/nsp'));
 app.use('/spotify', require('./lib/spotify').router);
+app.use('/missing-music', require('./lib/missing_music').createRouter(require('./db/index'), require('./providers/lidarr')));
 // Which MusicBrainz server to use (settings are in the DB by now)
 require('./providers/musicbrainz').configure(require('./db/settings').getSettings(require('./db/index')));
 const syncModule = require('./lib/sync');

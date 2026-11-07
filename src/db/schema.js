@@ -266,7 +266,24 @@ module.exports = function (db) {
       spotify_id TEXT PRIMARY KEY,
       track_id TEXT NOT NULL
     );
+    -- Manual Missing Music decisions. Reading the queue never sends requests.
+    CREATE TABLE IF NOT EXISTS missing_music_actions (
+      item_id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      artist TEXT NOT NULL,
+      album TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL,
+      foreign_id TEXT,
+      lidarr_id INTEGER,
+      monitor_missing INTEGER NOT NULL DEFAULT 0,
+      message TEXT,
+      updated_at INTEGER NOT NULL
+    );
   `);
+
+  const missingActionCols = db.prepare('PRAGMA table_info(missing_music_actions)').all().map(c => c.name);
+  if (!missingActionCols.includes('monitor_missing'))
+    db.exec('ALTER TABLE missing_music_actions ADD COLUMN monitor_missing INTEGER NOT NULL DEFAULT 0');
 
   // Additive migrations for pre-existing DBs (CREATE TABLE IF NOT EXISTS won't add
   // columns to an already-created tracks table). Guarded so it's idempotent.

@@ -103,7 +103,8 @@ async function getAllProfiles(settings) {
  */
 async function getArtists(settings) {
   const data = await request(settings, 'GET', '/artist');
-  return Array.isArray(data) ? data : [];
+  if (!Array.isArray(data)) throw new Error('Invalid Lidarr artist response');
+  return data;
 }
 
 /**
@@ -154,6 +155,91 @@ async function addArtist(settings, artistName, foreignArtistId) {
   }
 }
 
+// Manual queue operations deliberately do not use addArtist(), whose legacy
+// defaults search an entire artist catalog. Lookups are read-only; callers must
+// present the returned candidate for explicit user confirmation before writing.
+async function lookupArtists(settings, term) {
+  const data = await request(settings, 'GET', `/artist/lookup?term=${encodeURIComponent(term)}`);
+  if (!Array.isArray(data)) throw new Error('Invalid Lidarr artist lookup response');
+  return data;
+}
+
+async function lookupAlbums(settings, term) {
+  const data = await request(settings, 'GET', `/album/lookup?term=${encodeURIComponent(term)}`);
+  if (!Array.isArray(data)) throw new Error('Invalid Lidarr album lookup response');
+  return data;
+}
+
+function manualArtistSettings(settings, candidate, monitorMissing = false) {
+  const qualityProfileId = Number(settings.lidarr_quality_profile_id);
+  const metadataProfileId = Number(settings.lidarr_metadata_profile_id);
+  if (!settings.lidarr_root_folder || !Number.isInteger(qualityProfileId) || qualityProfileId < 1 ||
+      !Number.isInteger(metadataProfileId) || metadataProfileId < 1)
+    throw new Error('Configure the Lidarr root folder, quality profile and metadata profile in Settings first');
+  return { ...candidate, id: undefined, path: undefined,
+    rootFolderPath: settings.lidarr_root_folder, qualityProfileId, metadataProfileId,
+    monitored: true, monitorNewItems: 'none',
+    addOptions: { monitor: monitorMissing ? 'missing' : 'none', searchForMissingAlbums: false } };
+}
+
+async function requestArtistManually(settings, candidate, { monitorMissing = false } = {}) {
+  if (typeof monitorMissing !== 'boolean') throw new Error('An explicit monitoring choice is required');
+  const artists = await getArtists(settings); // Errors stop the request, never imply "not present".
+  const existing = artists.find(a => a.foreignArtistId === candidate.foreignArtistId);
+  if (existing) {
+    if (!monitorMissing) return { id: existing.id, status: 'added', message: 'Artist already in Lidarr; monitoring and searches were not changed.' };
+    if (!Number.isInteger(existing.id) || existing.id < 1) throw new Error('Invalid existing Lidarr artist ID');
+    if (existing.monitored === false) throw new Error('This artist is paused in Lidarr. Enable artist monitoring there first; no settings were changed.');
+    const albums = await request(settings, 'GET', `/album?artistId=${existing.id}`);
+    if (!Array.isArray(albums)) throw new Error('Invalid Lidarr album response');
+    if (albums.some(a => a.artistId !== undefined && a.artistId !== existing.id)) throw new Error('Lidarr returned albums for another artist; no monitoring changed');
+    const eligible = albums.filter(a => a.statistics?.trackFileCount === 0 &&
+      typeof a.releaseDate === 'string' && Number.isFinite(Date.parse(a.releaseDate)) && Date.parse(a.releaseDate) <= Date.now());
+    const ids = eligible.filter(a => !a.monitored).map(a => a.id);
+    if (ids.some(id => !Number.isInteger(id) || id < 1)) throw new Error('Invalid album IDs; no monitoring changed');
+    if (ids.length) await request(settings, 'PUT', '/album/monitor', { albumIds: ids, monitored: true });
+    return { id: existing.id, status: 'added', message: ids.length
+      ? `${ids.length} released albums with no files are now monitored. Other monitoring choices were retained. No immediate search requested; normal Lidarr automation may acquire monitored releases.`
+      : 'No additional verified missing released albums needed monitoring. No monitoring changes or searches requested.' };
+  }
+  const added = await request(settings, 'POST', '/artist', manualArtistSettings(settings, candidate, monitorMissing), TIMEOUT_WRITE);
+  if (!Number.isInteger(added?.id) || added.id < 1) throw new Error('Lidarr did not return the new artist ID; check Lidarr before retrying');
+  return { id: added.id, status: 'added', message: monitorMissing
+    ? 'Artist added using Lidarr’s Missing album monitoring mode. New/future albums are not auto-monitored. No immediate search requested; normal Lidarr automation may acquire monitored releases.'
+    : 'Artist added. No albums monitored, no future albums auto-monitored, and no search started.' };
+}
+
+async function requestAlbumManually(settings, candidate, search) {
+  const albums = await request(settings, 'GET', `/album?foreignAlbumId=${encodeURIComponent(candidate.foreignAlbumId)}`);
+  if (!Array.isArray(albums)) throw new Error('Invalid Lidarr album response');
+  const existing = albums.find(a => a.foreignAlbumId === candidate.foreignAlbumId);
+  const artists = await getArtists(settings);
+  const artist = artists.find(a => a.foreignArtistId === candidate.artist?.foreignArtistId);
+  if (artist && artist.monitored === false)
+    throw new Error('This artist is unmonitored in Lidarr. Enable artist monitoring in Lidarr before requesting an album; no settings were changed.');
+  if (existing) {
+    if (!Number.isInteger(existing.id) || existing.id < 1) throw new Error('Invalid existing Lidarr album ID');
+    const stats = existing.statistics;
+    if (stats?.totalTrackCount > 0 && stats.trackFileCount >= stats.totalTrackCount)
+      return { id: existing.id, status: 'added', message: 'Lidarr already has files for this album. No search started; sync Navidrome and review matching.' };
+    if (!existing.monitored) await request(settings, 'PUT', '/album/monitor', { albumIds: [existing.id], monitored: true });
+    if (search) await request(settings, 'POST', '/command', { name: 'AlbumSearch', albumIds: [existing.id] }, TIMEOUT_WRITE);
+    return { id: existing.id, status: search ? 'requested' : 'added', message: search
+      ? 'Selected album monitored and search queued. No other albums were changed.'
+      : 'Selected album monitored. No search started and no other albums were changed.' };
+  }
+  const artistResource = artist
+    ? { ...artist, addOptions: { monitor: 'none', searchForMissingAlbums: false } }
+    : manualArtistSettings(settings, candidate.artist);
+  const added = await request(settings, 'POST', '/album', { ...candidate, id: undefined,
+    artist: artistResource, artistId: artist?.id || 0, monitored: true,
+    addOptions: { searchForNewAlbum: search } }, TIMEOUT_WRITE);
+  if (!Number.isInteger(added?.id) || added.id < 1) throw new Error('Lidarr did not return the new album ID; check Lidarr before retrying');
+  return { id: added.id, status: search ? 'requested' : 'added', message: search
+    ? 'Selected album added and search requested. No artist-wide search requested.'
+    : 'Selected album added for monitoring only. No search requested.' };
+}
+
 // ── Exports ───────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -164,5 +250,9 @@ module.exports = {
   getAllProfiles,
   getArtists,
   artistExists,
-  addArtist
+  addArtist,
+  lookupArtists,
+  lookupAlbums,
+  requestArtistManually,
+  requestAlbumManually
 };

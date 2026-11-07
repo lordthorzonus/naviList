@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Review missing music by artist and album, and choose individual requests to send to Lidarr." />
+  <title>Missing Music · naviList</title>
+  <link rel="icon" href="/assets/favicon.webp" type="image/webp" />
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/missing_music.css" />
+  <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('navilist_theme') || 'auto');</script>
+</head>
+<body class="mm-body">
+  <nav>
+    <a href="/playlists" class="nav-brand"><img src="/assets/naviList_icon.png" class="nav-brand-icon" alt="" />naviList</a>
+    <ul>
+      <li><a href="/playlists">Playlists</a></li>
+      <li><a href="/status">Services</a></li>
+      <li><a href="/missing-music" class="active" aria-current="page">Missing Music</a></li>
+      <li><a href="/settings">Settings</a></li>
+      <li><a href="/logs">Logs</a></li>
+    </ul>
+    <select id="themeSelect" class="theme-select" aria-label="Theme"><option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option></select>
+  </nav>
+  <main class="mm-page">
+    <header class="pl-page-header">
+      <div><p class="mm-eyebrow">YOUR LIBRARY, AT YOUR PACE</p><h1>Missing Music</h1><p class="pl-page-sub">Explore the gaps. Choose what comes next.</p></div>
+      <button type="button" class="btn btn-secondary" id="mm-refresh">Refresh queue</button>
+    </header>
+    <div class="mm-metrics" aria-label="Queue totals">
+      <div><strong id="mm-artist-count">—</strong><span>artists in queue</span></div>
+      <div><strong id="mm-album-count">—</strong><span>albums identified</span></div>
+      <div><strong id="mm-track-count">—</strong><span>unmatched songs</span></div>
+    </div>
+    <div class="mm-notice" id="mm-auto-notice" hidden><p><strong>Automatic artist sending is enabled.</strong> Disable it to keep requests fully manual.</p><button id="mm-manual" class="btn btn-secondary btn-sm">Use manual mode</button></div>
+    <div class="mm-notice" id="mm-config-notice" hidden><p>Connect Lidarr in <a href="/settings">Settings</a> to review and send individual requests. You can browse the queue without it.</p></div>
+    <div class="mm-toolbar" aria-label="Filter missing music">
+      <label class="mm-search"><span class="mm-field-label">Find music</span><input id="mm-search" type="search" placeholder="Search artists, albums, or tracks…" autocomplete="off" /></label>
+      <label><span class="mm-field-label">Status</span><select id="mm-status"><option value="active">Active queue</option><option value="pending">Needs a decision</option><option value="requested">Search requested</option><option value="added">Added / monitored</option><option value="error">Needs attention</option><option value="ignored">Ignored</option><option value="available">Now available</option><option value="all">All statuses</option></select></label>
+      <label><span class="mm-field-label">Source</span><select id="mm-source"><option value="">All sources</option></select></label>
+    </div>
+    <div class="mm-list-heading"><p id="mm-range">Loading queue…</p><button id="mm-collapse" type="button" class="mm-text-button">Collapse all</button></div>
+    <p id="mm-message" class="mm-message" role="status" aria-live="polite"></p>
+    <div id="mm-warnings"></div>
+    <section id="mm-list" class="mm-list" aria-label="Artists with missing music" aria-busy="true"></section>
+    <div class="mm-pagination"><button id="mm-prev" class="btn btn-secondary btn-sm" disabled>← Previous</button><span id="mm-pages"></span><button id="mm-next" class="btn btn-secondary btn-sm" disabled>Next →</button></div>
+    <p class="mm-footnote">Based on cached Spotify previews/subscriptions, Last.fm and ListenBrainz playlists, and naviList’s existing missing-artist queue—not Lidarr’s entire Wanted catalog. Unmatched does not always mean absent: review metadata and version differences before requesting. Some sources do not provide album information.</p>
+    <p class="mm-footnote">Browsing and refreshing this page never sends music to Lidarr. “Search requested” means Lidarr accepted a search, not that a download was found or completed. Ignoring an item does not cancel existing Lidarr activity.</p>
+  </main>
+  <dialog id="mm-review" class="mm-review" aria-labelledby="mm-review-title">
+    <div class="mm-dialog-heading"><div><p class="mm-eyebrow">REVIEW BEFORE SENDING</p><h2 id="mm-review-title">Review match</h2></div><button id="mm-close" class="mm-close" aria-label="Close review">×</button></div>
+    <p id="mm-review-context" class="mm-muted"></p>
+    <form id="mm-lookup-form" class="mm-lookup"><label class="mm-search"><span class="mm-field-label">Search Lidarr metadata</span><input id="mm-lookup-term" maxlength="200" required /></label><button class="btn btn-secondary" id="mm-lookup-button">Find matches</button></form>
+    <p id="mm-review-message" class="mm-message" role="status" aria-live="polite"></p>
+    <fieldset class="mm-candidates"><legend>Choose the correct match</legend><div id="mm-candidates"></div></fieldset>
+    <div class="mm-effect">
+      <p id="mm-effect-text"></p><p id="mm-profile-info" class="mm-muted"></p>
+      <label id="mm-monitor-choice" hidden><input id="mm-monitor-missing" type="checkbox" /> Monitor missing albums for this artist</label>
+      <label id="mm-search-choice"><input id="mm-search-album" type="checkbox" checked /> Search for this album now</label>
+    </div>
+    <label class="mm-confirm"><input id="mm-confirm" type="checkbox" /> I reviewed the match and approve this action in Lidarr.</label>
+    <div class="mm-dialog-actions"><button id="mm-cancel" class="btn btn-secondary">Cancel</button><button id="mm-send" class="btn" disabled>Send to Lidarr</button></div>
+  </dialog>
+  <script src="/js/theme.js"></script>
+  <script src="/js/missing_music.js"></script>
+</body>
+</html>

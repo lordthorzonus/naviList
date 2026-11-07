@@ -9,6 +9,9 @@
 > below describes the original project; its statement that direct Spotify is not
 > supported applies to upstream, not this fork.
 
+> **Missing Music (local development):** a global, artist-grouped queue for reviewing
+> individual artist/album requests in Lidarr. See [manual queue behavior and safeguards](docs/missing-music.md).
+
 Self-hosted playlist manager and generator for [Navidrome](https://www.navidrome.org/).
 
 **Documentation:** [naviList Wiki](https://github.com/ofernander/naviList/wiki) - setup, every feature explained, and troubleshooting.

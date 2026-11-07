@@ -31,6 +31,29 @@
       <h1>Settings</h1>
     </div>
 
+    <section class="status-history-source" aria-labelledby="spotifySettingsHeading" style="margin-bottom:1.5rem;">
+      <div class="history-source-header">
+        <span class="history-source-name" id="spotifySettingsHeading">Spotify</span>
+        <span class="history-source-status" id="spotifySettingsStatus" role="status" aria-live="polite"></span>
+      </div>
+      <p>Register an app in the <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer">Spotify Developer Dashboard</a>, then enter its details here.</p>
+      <form id="spotifyConfigForm">
+        <div class="svc-jobs">
+          <div class="svc-job svc-field"><label class="svc-job-label" for="spotifyClientId">Client ID</label><input id="spotifyClientId" type="text" autocomplete="off" required /></div>
+          <div class="svc-job svc-field"><label class="svc-job-label" for="spotifyClientSecret">Client secret</label><input id="spotifyClientSecret" type="password" autocomplete="new-password" placeholder="Enter client secret" /></div>
+          <div class="svc-job svc-field"><label class="svc-job-label" for="spotifyRedirectUri">Callback URL</label><input id="spotifyRedirectUri" type="url" required /></div>
+        </div>
+        <p style="font-size:0.8rem;opacity:0.75;">Register this exact callback URL in Spotify. Leave the secret blank to keep the saved value. Spotify settings are saved separately from the settings below.</p>
+        <button type="submit" class="btn btn-secondary" id="spotifySave">Save Spotify settings</button>
+      </form>
+      <div style="display:flex;gap:0.7rem;align-items:center;flex-wrap:wrap;margin-top:1rem;">
+        <form action="/spotify/connect" method="post"><button class="btn" id="spotifyConnect" disabled>Connect Spotify</button></form>
+        <button type="button" class="btn btn-secondary" id="spotifyDisconnect" disabled>Disconnect</button>
+        <a href="/playlists?spotify=1">Select playlists →</a>
+      </div>
+      <p id="spotifySettingsHelp" style="font-size:0.8rem;opacity:0.75;"></p>
+    </section>
+
     <form method="POST" action="/settings">
       <div class="status-history">
 
@@ -498,5 +521,6 @@
     }).catch(() => {});
   </script>
   <script src="/js/theme.js"></script>
+  <script src="/js/spotify_settings.js"></script>
 </body>
 </html>

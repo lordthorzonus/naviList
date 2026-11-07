@@ -351,6 +351,7 @@ function runLibrarySync(reason) {
       syncState.running    = false;
       syncState.lastResult = result;
       logger.info('sync', `library sync finished (${reason}) — ok: ${result.ok}`);
+      if (result.ok) runDetached('spotify-library-rematch', () => require('../spotify').service.syncAll({ cachedOnly: true }));
       // Missing artists that just arrived can now appear in rules playlists.
       if (result.foundArtists > 0)
         runDetached('regenerate-rules-playlists', () => refresh.regenerateRulesPlaylists('missing-artists-found'));
@@ -373,6 +374,7 @@ function runLibrarySync(reason) {
 
 function runExternalServiceSyncs() {
   const s = getSettings();
+  runDetached('spotify-playlists', () => require('../spotify').service.syncAll());
 
   if (s.lastfm_api_key && s.lastfm_username) {
     runHistoryImport('lastfm', lastfm.fetchListens, { apiKey: s.lastfm_api_key, username: s.lastfm_username });

@@ -92,7 +92,7 @@ function scheduleStudioRefine(db, playlistId, trackIds, comment, { keepLive = fa
  *
  * Returns { ok: true, playlistId, created } or { ok: false, error }.
  */
-async function publishPlaylist(db, { id = null, name, type = null, config = null, trackIds }) {
+async function publishPlaylist(db, { id = null, name, type = null, config = null, trackIds, refine = true }) {
   const comment = buildComment(type, config);
   let playlistId = id;
 
@@ -109,10 +109,13 @@ async function publishPlaylist(db, { id = null, name, type = null, config = null
   const meta = {};
   if (id && name) meta.name    = name;
   if (comment)    meta.comment = comment;
-  if (Object.keys(meta).length) await navidrome.updatePlaylist(db, playlistId, meta);
+  if (Object.keys(meta).length) {
+    const updated = await navidrome.updatePlaylist(db, playlistId, meta);
+    if (!updated.ok) return { ...updated, playlistId };
+  }
 
   snapshotPlaylist(db, playlistId, name ?? null, comment, trackIds, sumDuration(db, trackIds), { type, config });
-  if (type) scheduleStudioRefine(db, playlistId, trackIds, comment, { keepLive: allowsLive(config) });
+  if (type && refine) scheduleStudioRefine(db, playlistId, trackIds, comment, { keepLive: allowsLive(config) });
 
   return { ok: true, playlistId, created: !id };
 }

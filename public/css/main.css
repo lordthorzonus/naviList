@@ -409,6 +409,7 @@ select:focus {
 .pl-badge-nsp,
 .pl-badge-manual,
 .pl-badge-lastfm,
+.pl-badge-spotify,
 .pl-badge-listenbrainz,
 .pl-badge-smart { background: var(--accent-tint); color: var(--accent-hover); }
 

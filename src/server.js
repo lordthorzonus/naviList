@@ -21,9 +21,9 @@ app.use((req, res, next) => {
   res.on('finish', () => {
     if (!LOG_SKIP.some(p => req.url.startsWith(p))) {
       if (res.statusCode === 304) {
-        logger.debug('http', `${req.method} ${req.url} ${res.statusCode}`);
+        logger.debug('http', `${req.method} ${req.path} ${res.statusCode}`);
       } else {
-        logger.info('http', `${req.method} ${req.url} ${res.statusCode}`);
+        logger.info('http', `${req.method} ${req.path} ${res.statusCode}`);
       }
     }
   });
@@ -41,6 +41,7 @@ app.use('/playlists', require('./lib/playlists'));
 app.use('/library', require('./lib/library'));
 app.use('/settings', require('./lib/settings'));
 app.use('/nsp', require('./lib/nsp'));
+app.use('/spotify', require('./lib/spotify').router);
 // Which MusicBrainz server to use (settings are in the DB by now)
 require('./providers/musicbrainz').configure(require('./db/settings').getSettings(require('./db/index')));
 const syncModule = require('./lib/sync');

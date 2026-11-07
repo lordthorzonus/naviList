@@ -1,5 +1,14 @@
 # naviList
 
+> **Spotify integration fork (experimental):** owned Spotify playlist selection,
+> missing-track reporting and automatic Navidrome sync are available under
+> **Playlists → + New Playlist → Spotify**. Account setup is in **Settings → Spotify**.
+> See [Spotify setup and Kubernetes deployment](docs/spotify.md). Preview tests
+> track access for Release Radar and followed/editorial playlists rather than
+> blocking by ownership; Spotify may deny access. The upstream documentation
+> below describes the original project; its statement that direct Spotify is not
+> supported applies to upstream, not this fork.
+
 Self-hosted playlist manager and generator for [Navidrome](https://www.navidrome.org/).
 
 **Documentation:** [naviList Wiki](https://github.com/ofernander/naviList/wiki) - setup, every feature explained, and troubleshooting.

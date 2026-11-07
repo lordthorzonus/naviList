@@ -317,6 +317,7 @@ router.post('/:id/delete', async (req, res) => {
     // Deleting a subscription's playlist ends the subscription.
     db.prepare('DELETE FROM lb_subscriptions WHERE navidrome_id = ?').run(id);
     db.prepare('UPDATE lfm_playlists SET enabled = 0, navidrome_id = NULL WHERE navidrome_id = ?').run(id);
+    db.prepare('UPDATE spotify_playlists SET enabled = 0, navidrome_id = NULL WHERE navidrome_id = ?').run(id);
   })();
 
   cancelPlaylistRefresh(id);

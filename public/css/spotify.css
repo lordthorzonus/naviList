@@ -1,0 +1,13 @@
+.sp-panel { border: 1px solid #8885; border-radius: 8px; padding: 1.2rem; margin: 1.2rem 0; }
+.sp-panel h2 { margin-top: 0; }
+.sp-note { opacity: .75; font-size: .9rem; line-height: 1.6; }
+.sp-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .7rem; margin: .8rem 0; }
+.sp-actions form { margin: 0; }
+.sp-playlist { display: flex; flex-wrap: wrap; align-items: center; gap: .7rem; padding: .8rem 0; border-bottom: 1px solid #8883; }
+.sp-playlist span { flex: 1; min-width: 12rem; }
+.sp-table-wrap { overflow-x: auto; margin-top: 1rem; }
+.sp-table-wrap table { width: 100%; border-collapse: collapse; }
+.sp-table-wrap td, .sp-table-wrap th { padding: .6rem; text-align: left; border-bottom: 1px solid #8883; }
+.sp-table-wrap select { max-width: 28rem; width: 100%; }
+#sp-message { min-height: 1.5rem; white-space: pre-wrap; }
+#viewSpotify button:disabled { opacity: .5; cursor: not-allowed; }

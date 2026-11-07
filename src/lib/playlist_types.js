@@ -16,6 +16,7 @@ const TYPES = {
   NAVILIST:        'navilist',          // rules engine
   RADIO:           'radio',             // legacy: seed artists + similar, now an artist rule option
   LB:              'lb',                // ListenBrainz subscription
+  SPOTIFY:         'spotify',           // Spotify subscription
   LB_SNAPSHOT:     'lb-snapshot',
   LASTFM:          'lastfm',            // Last.fm chart subscription
   LASTFM_SNAPSHOT: 'lastfm-snapshot',

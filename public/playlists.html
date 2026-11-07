@@ -6,6 +6,7 @@
   <title>naviList</title>
   <link rel="icon" href="/assets/favicon.webp" type="image/webp" />
   <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/spotify.css" />
   <script>document.documentElement.setAttribute("data-theme", localStorage.getItem("navilist_theme") || "auto");</script>
   <style>
     .rb-use {
@@ -99,6 +100,7 @@
         <option value="all">All</option>
         <option value="navilist">naviList</option>
         <option value="listenbrainz">ListenBrainz</option>
+        <option value="spotify">Spotify</option>
         <option value="manual">Manual</option>
         <option value="exportify">Exportify</option>
       </select>
@@ -319,6 +321,35 @@
     <div class="lb-cards" id="plLfmList"></div>
   </main>
 
+  <!-- ── Spotify import view ─────────────────────────────────────────────── -->
+  <main id="viewSpotify" style="display:none">
+    <button class="pl-detail-back" id="sp-back">← All playlists</button>
+    <div class="pl-page-header"><div>
+      <h1>Spotify Playlists</h1>
+      <p class="pl-page-sub">Review your Spotify playlists and choose which to sync to Navidrome</p>
+    </div></div>
+    <p id="sp-connection"></p>
+    <div class="sp-actions">
+      <a href="/settings#spotifySettingsHeading">Spotify connection settings</a>
+      <button class="btn btn-secondary" id="sp-browse" disabled>Refresh playlists</button>
+    </div>
+    <p class="sp-note">Preview any listed playlist to check track access, including Release Radar. Spotify may restrict generated or followed playlists for your app; listing a playlist does not guarantee track access. Subscriptions refresh every 30 minutes and after library syncs.</p>
+    <p id="sp-message" role="status" aria-live="polite"></p>
+    <div class="lb-cards" id="sp-playlists">Connect Spotify in Settings to get started.</div>
+    <section class="sp-panel" id="sp-preview" hidden>
+      <h2 id="sp-previewTitle" tabindex="-1"></h2>
+      <p id="sp-summary"></p><p id="sp-syncStatus"></p>
+      <div class="sp-actions">
+        <button id="sp-subscribe" class="btn">Subscribe</button>
+        <button id="sp-sync" class="btn btn-secondary">Sync now</button>
+        <button id="sp-stop" class="btn btn-secondary">Stop syncing</button>
+        <label><input type="checkbox" id="sp-missingOnly" /> Only missing / needs review</label>
+      </div>
+      <p class="sp-note">Confirm fuzzy suggestions below, then subscribe or sync. Empty or wholly unmatched playlists never erase a destination. Stopping sync keeps the Navidrome playlist.</p>
+      <div class="sp-table-wrap"><table><thead><tr><th>#</th><th>Artist</th><th>Track</th><th>Status / match</th></tr></thead><tbody id="sp-tracks"></tbody></table></div>
+    </section>
+  </main>
+
   <!-- ── Exportify import view ──────────────────────────────────────────── -->
   <main id="viewExportify" style="display:none">
     <button class="pl-detail-back" id="exportifyBackBtn">← Back</button>
@@ -382,6 +413,10 @@
           <div class="pl-type-title">Last.fm</div>
           <div class="pl-type-desc">Import Last.fm playlists</div>
         </div>
+        <div class="pl-type-option" data-type="spotify" id="typeSpotify">
+          <div class="pl-type-title">Spotify</div>
+          <div class="pl-type-desc">Import and sync your Spotify playlists</div>
+        </div>
         <div class="pl-type-option" data-type="manual" id="typeManual">
           <div class="pl-type-title">Manual</div>
           <div class="pl-type-desc">Manually create playlist from Navidrome library</div>
@@ -442,6 +477,7 @@
     </div>
   </div>
 
+  <script src="/js/spotify.js"></script>
   <script>
     // ── State ──────────────────────────────────────────────────────────────
     let allPlaylists = [];
@@ -493,6 +529,7 @@
       navilist: 'navilist', nsp: 'nsp',
       lb: 'listenbrainz', 'lb-snapshot': 'listenbrainz',
       lastfm: 'lastfm',   'lastfm-snapshot': 'lastfm',
+      spotify: 'spotify',
       import: 'exportify', exportify: 'exportify',
     };
     function getPlaylistType(p) { return UI_TYPES[p.type] || 'manual'; }
@@ -509,6 +546,7 @@
         case 'exportify':    return 'Import';
         case 'listenbrainz': return 'ListenBrainz';
         case 'lastfm':       return 'Last.fm';
+        case 'spotify':      return 'Spotify';
         default:             return 'Manual';
       }
     }
@@ -556,7 +594,7 @@
 
     // ── Views ──────────────────────────────────────────────────────────────
     function hideAllViews() {
-      ['viewList','viewDetail','viewRules','viewLb','viewLfm','viewNsp','viewExportify'].forEach(id => {
+      ['viewList','viewDetail','viewRules','viewLb','viewLfm','viewSpotify','viewNsp','viewExportify'].forEach(id => {
         document.getElementById(id).style.display = 'none';
       });
     }
@@ -567,6 +605,13 @@
     function showNspView()   { hideAllViews(); document.getElementById('viewNsp').style.display   = ''; }
     function showExportifyView() { hideAllViews(); document.getElementById('viewExportify').style.display = ''; }
     function showManualView() { window.location.href = '/library?mode=manual'; }
+
+    function showSpotifyView() {
+      hideAllViews();
+      document.getElementById('viewSpotify').style.display = '';
+      window.navilistSpotify.open();
+    }
+    document.getElementById('sp-back').addEventListener('click', () => { showListView(); loadPlaylists(); });
 
     async function showLfmView() {
       hideAllViews();
@@ -1930,6 +1975,7 @@
       if (selectedType === 'nsp') { openNspBuilder(null, null); return; }
       if (selectedType === 'listenbrainz') { showLbView(); return; }
       if (selectedType === 'lastfm')       { showLfmView(); return; }
+      if (selectedType === 'spotify')      { showSpotifyView(); return; }
       if (selectedType === 'manual')       { showManualView(); return; }
       if (selectedType === 'exportify') {
         exportifyMatchedTracks = []; exportifyUnmatched = []; importDecisions = [];
@@ -3023,7 +3069,9 @@
     const openId  = new URLSearchParams(window.location.search).get('id');
     const openLb  = new URLSearchParams(window.location.search).get('lb');
     const openLfm = new URLSearchParams(window.location.search).get('lfm');
+    const openSpotify = new URLSearchParams(window.location.search).get('spotify');
     loadPlaylists().then(() => {
+      if (openSpotify) { showSpotifyView(); return; }
       if (openLb)  { showLbView();  return; }
       if (openLfm) { showLfmView(); return; }
       if (openId) { const match = allPlaylists.find(p => p.id === openId); if (match) openDetail(match); }

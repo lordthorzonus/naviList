@@ -1,9 +1,14 @@
 node_modules/
 *.db
+*.db-wal
+*.db-shm
+*.tar
 npm-debug.log
 .git
 MISC/
 .env
+.env.*
+!.env.example
 data/
 docker-compose*.yml
 docs/

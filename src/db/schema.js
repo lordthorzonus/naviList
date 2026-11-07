@@ -238,6 +238,34 @@ module.exports = function (db) {
 
     CREATE INDEX IF NOT EXISTS idx_navilist_playlist_tracks_playlist
       ON navilist_playlist_tracks(playlist_id);
+
+    -- Spotify credentials are encrypted independently of UI-readable settings.
+    CREATE TABLE IF NOT EXISTS spotify_config (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      client_id TEXT NOT NULL,
+      client_secret TEXT NOT NULL,
+      redirect_uri TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS spotify_account (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      user_id TEXT NOT NULL,
+      tokens TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS spotify_playlists (
+      spotify_id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      snapshot_id TEXT,
+      tracks_json TEXT NOT NULL DEFAULT '[]',
+      enabled INTEGER NOT NULL DEFAULT 0,
+      navidrome_id TEXT,
+      last_checked_at INTEGER,
+      last_synced_at INTEGER,
+      error TEXT
+    );
+    CREATE TABLE IF NOT EXISTS spotify_matches (
+      spotify_id TEXT PRIMARY KEY,
+      track_id TEXT NOT NULL
+    );
   `);
 
   // Additive migrations for pre-existing DBs (CREATE TABLE IF NOT EXISTS won't add
